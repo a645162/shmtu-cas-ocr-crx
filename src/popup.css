@@ -1,0 +1,109 @@
+:root {
+  color-scheme: light;
+  font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+  background:
+    radial-gradient(circle at top left, rgba(11, 103, 176, 0.18), transparent 52%),
+    linear-gradient(180deg, #f7fbff 0%, #e8f1fb 100%);
+  color: #0f172a;
+}
+
+body {
+  margin: 0;
+  min-width: 360px;
+}
+
+.popup-shell {
+  padding: 16px;
+}
+
+h1 {
+  margin: 0 0 8px;
+  font-size: 18px;
+  line-height: 1.2;
+}
+
+.intro,
+.hint,
+.status,
+label,
+input,
+button {
+  font-size: 13px;
+}
+
+.intro,
+.hint,
+.status {
+  margin: 0;
+  line-height: 1.45;
+}
+
+.settings-form {
+  display: grid;
+  gap: 10px;
+}
+
+label {
+  font-weight: 700;
+}
+
+input {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #b8c8dc;
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.88);
+  color: inherit;
+}
+
+input:focus {
+  outline: 2px solid rgba(11, 103, 176, 0.22);
+  border-color: #0b67b0;
+}
+
+.hint {
+  color: #475569;
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+}
+
+button {
+  border: 0;
+  border-radius: 999px;
+  padding: 10px 14px;
+  cursor: pointer;
+  transition: transform 120ms ease, opacity 120ms ease;
+}
+
+button:hover {
+  transform: translateY(-1px);
+}
+
+button:active {
+  transform: translateY(0);
+}
+
+#save-button {
+  background: #0b67b0;
+  color: #ffffff;
+  font-weight: 700;
+}
+
+#default-button {
+  background: rgba(15, 23, 42, 0.08);
+  color: #0f172a;
+}
+
+.status {
+  min-height: 18px;
+  color: #0b67b0;
+}
+
+code {
+  font-family: "JetBrains Mono", "SFMono-Regular", monospace;
+  font-size: 12px;
+}

@@ -1,0 +1,16 @@
+{
+  "name": "shmtu-cas-ocr-crx",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Chrome extension for auto-recognizing SHMTU CAS captcha via a configurable OCR server.",
+  "scripts": {
+    "build": "node ./build.mjs",
+    "clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\""
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.5"
+  },
+  "dependencies": {
+    "webextension-polyfill": "^0.12.0"
+  }
+}

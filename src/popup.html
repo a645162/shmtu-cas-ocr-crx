@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SHMTU CAS OCR</title>
+    <link rel="stylesheet" href="./popup.css">
+    <script src="./popup.js" defer></script>
+  </head>
+  <body>
+    <main class="popup-shell">
+      <h1>SHMTU CAS OCR</h1>
+      <p class="intro">设置 OCR 服务地址。支持 <code>http://</code> 和 <code>https://</code>。</p>
+      <form id="settings-form" class="settings-form">
+        <label for="endpoint-url">OCR 服务地址</label>
+        <input
+          id="endpoint-url"
+          name="endpointUrl"
+          type="url"
+          spellcheck="false"
+          placeholder="http://127.0.0.1:21600 或 http://127.0.0.1:21600/api/ocr"
+          required
+        >
+        <p class="hint">如果只填主机和端口，插件会自动补成 <code>/api/ocr</code>。</p>
+        <div class="actions">
+          <button id="save-button" type="submit">保存</button>
+          <button id="default-button" type="button">默认值</button>
+        </div>
+        <p id="status-text" class="status" role="status" aria-live="polite"></p>
+      </form>
+    </main>
+  </body>
+</html>

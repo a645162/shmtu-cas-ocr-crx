@@ -1,0 +1,36 @@
+{
+  "manifest_version": 3,
+  "name": "SHMTU CAS OCR",
+  "version": "0.1.0",
+  "description": "Read captcha images on SHMTU CAS login pages, send them to an OCR server, and fill the result automatically.",
+  "permissions": [
+    "storage"
+  ],
+  "host_permissions": [
+    "https://cas.shmtu.edu.cn/*",
+    "http://*/*",
+    "https://*/*"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_title": "SHMTU CAS OCR",
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://cas.shmtu.edu.cn/cas/login*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'; connect-src http: https:;"
+  }
+}
