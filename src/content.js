@@ -7,6 +7,9 @@ const RETRY_BUTTON_ID = "shmtu-cas-ocr-retry-button";
 const STATUS_ID = "shmtu-cas-ocr-status";
 const EXPRESSION_ID = "shmtu-cas-ocr-expression";
 const INFO_ROW_ID = "shmtu-cas-ocr-info-row";
+const PREVIEW_IMG_ID = "shmtu-cas-ocr-preview-image";
+const PAYLOAD_META_ID = "shmtu-cas-ocr-payload-meta";
+const PAYLOAD_TEXT_ID = "shmtu-cas-ocr-payload-text";
 
 let recognitionTimer = null;
 let activeRunId = 0;
@@ -27,6 +30,18 @@ function getExpressionNode() {
 
 function getInfoRow() {
   return document.getElementById(INFO_ROW_ID);
+}
+
+function getPreviewImageNode() {
+  return document.getElementById(PREVIEW_IMG_ID);
+}
+
+function getPayloadMetaNode() {
+  return document.getElementById(PAYLOAD_META_ID);
+}
+
+function getPayloadTextNode() {
+  return document.getElementById(PAYLOAD_TEXT_ID);
 }
 
 function isTargetPage() {
@@ -90,6 +105,34 @@ function setExpression(expression) {
   expressionNode.textContent = `OCR算式：${expression}`;
 }
 
+function setPayloadPreview(dataUrl, endpointUrl = "") {
+  const previewImageNode = getPreviewImageNode();
+  const payloadMetaNode = getPayloadMetaNode();
+  const payloadTextNode = getPayloadTextNode();
+  if (!previewImageNode || !payloadMetaNode || !payloadTextNode) {
+    return;
+  }
+
+  if (!dataUrl) {
+    previewImageNode.removeAttribute("src");
+    previewImageNode.style.display = "none";
+    payloadMetaNode.textContent = "发送数据：等待识别";
+    payloadTextNode.value = "";
+    return;
+  }
+
+  previewImageNode.src = dataUrl;
+  previewImageNode.style.display = "block";
+
+  const commaIndex = dataUrl.indexOf(",");
+  const header = commaIndex >= 0 ? dataUrl.slice(0, commaIndex) : "data:";
+  const base64Payload = commaIndex >= 0 ? dataUrl.slice(commaIndex + 1) : "";
+  const sizeHint = Math.floor((base64Payload.length * 3) / 4);
+  payloadMetaNode.textContent =
+    `发送目标：${endpointUrl || "等待返回"} | 数据头：${header} | 估算字节：${sizeHint}`;
+  payloadTextNode.value = dataUrl;
+}
+
 function scheduleRecognition(reason, delayMs = 300) {
   if (recognitionTimer !== null) {
     window.clearTimeout(recognitionTimer);
@@ -101,41 +144,29 @@ function scheduleRecognition(reason, delayMs = 300) {
   }, delayMs);
 }
 
-async function fetchCaptchaBlob(image) {
-  const src = image.currentSrc || image.getAttribute("src");
-  if (!src) {
-    throw new Error("验证码图片地址为空。");
+function captchaToDataUrl(image) {
+  if (!image.complete || image.naturalWidth === 0 || image.naturalHeight === 0) {
+    throw new Error("当前验证码图片尚未加载完成。");
   }
 
-  const response = await fetch(new URL(src, window.location.href).toString(), {
-    credentials: "include",
-    cache: "no-store"
-  });
+  const canvas = document.createElement("canvas");
+  canvas.width = image.naturalWidth;
+  canvas.height = image.naturalHeight;
 
-  if (!response.ok) {
-    throw new Error(`验证码图片下载失败，HTTP ${response.status}。`);
+  const context = canvas.getContext("2d");
+  if (!context) {
+    throw new Error("浏览器无法创建验证码绘图上下文。");
   }
 
-  return response.blob();
-}
+  // 直接读取页面上当前显示的验证码像素，避免重新请求导致验证码变化。
+  context.drawImage(image, 0, 0, canvas.width, canvas.height);
 
-async function captchaToDataUrl(image) {
-  const blob = await fetchCaptchaBlob(image);
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onerror = () => {
-      reject(new Error("读取验证码图片失败。"));
-    };
-    reader.onload = () => {
-      if (typeof reader.result !== "string" || !reader.result.startsWith("data:")) {
-        reject(new Error("验证码图片转换 data URL 失败。"));
-        return;
-      }
+  const dataUrl = canvas.toDataURL("image/png");
+  if (!dataUrl.startsWith("data:image/png;base64,")) {
+    throw new Error("当前验证码图片转换 data URL 失败。");
+  }
 
-      resolve(reader.result);
-    };
-    reader.readAsDataURL(blob);
-  });
+  return dataUrl;
 }
 
 async function recognizeCaptcha(reason) {
@@ -160,7 +191,8 @@ async function recognizeCaptcha(reason) {
     setStatus("正在识别验证码...", "info");
     setExpression("");
 
-    const dataUrl = await captchaToDataUrl(image);
+    const dataUrl = captchaToDataUrl(image);
+    setPayloadPreview(dataUrl);
     const result = await browser.runtime.sendMessage({
       type: "OCR_RECOGNIZE",
       payload: {
@@ -185,6 +217,7 @@ async function recognizeCaptcha(reason) {
     input.value = result.text;
     dispatchInputEvents(input);
     setExpression(result.expression || "");
+    setPayloadPreview(dataUrl, result.endpointUrl || "");
     setStatus(`识别成功：${result.text}`, "success");
   } catch (error) {
     console.warn("[shmtu-cas-ocr-crx] Recognition error", {
@@ -262,7 +295,58 @@ function ensureRetryUi(image) {
     statusNode.style.wordBreak = "break-word";
     statusNode.style.color = "#475569";
 
-    infoRow.append(expressionNode, statusNode);
+    const payloadMetaNode = document.createElement("div");
+    payloadMetaNode.id = PAYLOAD_META_ID;
+    payloadMetaNode.style.fontSize = "11px";
+    payloadMetaNode.style.lineHeight = "1.35";
+    payloadMetaNode.style.wordBreak = "break-word";
+    payloadMetaNode.style.color = "#334155";
+    payloadMetaNode.textContent = "发送数据：等待识别";
+
+    const previewImageNode = document.createElement("img");
+    previewImageNode.id = PREVIEW_IMG_ID;
+    previewImageNode.alt = "发送到OCR服务的验证码预览";
+    previewImageNode.style.display = "none";
+    previewImageNode.style.maxWidth = "220px";
+    previewImageNode.style.width = "100%";
+    previewImageNode.style.border = "1px solid rgba(15, 23, 42, 0.16)";
+    previewImageNode.style.borderRadius = "8px";
+    previewImageNode.style.background = "#ffffff";
+
+    const payloadDetails = document.createElement("details");
+    payloadDetails.style.fontSize = "11px";
+    payloadDetails.style.lineHeight = "1.35";
+
+    const payloadSummary = document.createElement("summary");
+    payloadSummary.textContent = "查看发送的 data URL";
+    payloadSummary.style.cursor = "pointer";
+    payloadSummary.style.color = "#0b67b0";
+
+    const payloadTextNode = document.createElement("textarea");
+    payloadTextNode.id = PAYLOAD_TEXT_ID;
+    payloadTextNode.readOnly = true;
+    payloadTextNode.style.marginTop = "6px";
+    payloadTextNode.style.width = "100%";
+    payloadTextNode.style.minHeight = "84px";
+    payloadTextNode.style.boxSizing = "border-box";
+    payloadTextNode.style.fontSize = "11px";
+    payloadTextNode.style.lineHeight = "1.35";
+    payloadTextNode.style.fontFamily = "monospace";
+    payloadTextNode.style.border = "1px solid rgba(15, 23, 42, 0.16)";
+    payloadTextNode.style.borderRadius = "8px";
+    payloadTextNode.style.padding = "8px";
+    payloadTextNode.style.background = "#ffffff";
+    payloadTextNode.style.color = "#0f172a";
+
+    payloadDetails.append(payloadSummary, payloadTextNode);
+
+    infoRow.append(
+      expressionNode,
+      statusNode,
+      payloadMetaNode,
+      previewImageNode,
+      payloadDetails
+    );
     rowContainer.insertAdjacentElement("afterend", infoRow);
   }
 
